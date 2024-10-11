@@ -79,9 +79,11 @@ private:
     // definitions for fps trackers
     Uint32 fpsAverage, fpsPrevious, fpsStart, fpsEnd;
 
+
     GL_GraphicsEngine();
 
 public:
+    GLint attribute_coord2d;
     ~GL_GraphicsEngine();
 
     //void useFont(TTF_Font * font);
@@ -104,6 +106,11 @@ public:
     void showScreen();
 
     void adjustFPSDelay(const Uint32 &delay);
+
+    GLuint common_get_shader_program(
+        const char* vertex_shader_source,
+        const char* fragment_shader_source
+    );
 
     void drawRect(GLfloat * vertices);
 };

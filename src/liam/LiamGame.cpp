@@ -55,14 +55,17 @@ int LiamGame::runMainLoop() {
 }
 
 void LiamGame::render() {
-
-    GLfloat vertices[] = {0.0f, 0.5f,
-                      0.5f, -0.5f,
-                      -0.5f, -0.5f
+    /*
+    GLfloat vertices[] = {
+        0.0f, 0.5f,
+        0.5f, -0.5f,
+        -0.5f, -0.5f
     };
     gfx->drawRect(vertices);
+    */
+    glEnableVertexAttribArray(gfx->attribute_coord2d);
     glDrawArrays(GL_TRIANGLES, 0, 3);
-
+    glDisableVertexAttribArray(gfx->attribute_coord2d);
 }
 
 void LiamGame::update() {
