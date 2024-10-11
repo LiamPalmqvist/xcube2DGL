@@ -5,7 +5,6 @@
 #include "GL_GraphicsEngine.h"
 
 SDL_GLContext gl_context = nullptr;
-// I'm going to hard code this temporarily
 static const GLchar* vertexSource =
 "#version 120\n"
 "attribute vec2 coord2d;\n"
