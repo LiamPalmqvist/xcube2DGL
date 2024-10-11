@@ -19,6 +19,7 @@ enum Mouse {
 
 class EventEngine {
 	friend class XCube2Engine;
+	friend class GL_XCube2dEngine;
 	private:
 		bool running;
 		SDL_Event event;

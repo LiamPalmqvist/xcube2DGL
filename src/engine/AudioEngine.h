@@ -7,6 +7,7 @@
 
 class AudioEngine {
 	friend class XCube2Engine;
+	friend class GL_XCube2dEngine;
 	private:
 		AudioEngine();
 		bool soundOn;

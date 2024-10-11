@@ -21,6 +21,10 @@ if(WIN32)
     
     set(SDL2_TTF_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/SDL2_ttf/include")
     set(SDL2_TTF_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/SDL2_ttf/lib/x64/SDL2_ttf.lib")
+
+    set(GLEW_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/GLEW/include")
+    set(GLEW_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/GLEW/lib/Release/x64/glew32.lib")
+
     
     # copy dynamic libraries
     file(COPY 
@@ -35,6 +39,7 @@ if(WIN32)
             "${CMAKE_SOURCE_DIR}/libs/SDL2_mixer/lib/x64/libmpg123-0.dll"
             "${CMAKE_SOURCE_DIR}/libs/SDL2_ttf/lib/x64/libfreetype-6.dll"
             "${CMAKE_SOURCE_DIR}/libs/SDL2_ttf/lib/x64/SDL2_ttf.dll"
+            "${CMAKE_SOURCE_DIR}/libs/GLEW/lib/Release/x64/glew32.dll"
             DESTINATION ${CMAKE_BINARY_DIR})
 else()
     # let FindSDL2.cmake figure out where it is on Mac/Linux
@@ -52,7 +57,9 @@ endif()
 include_directories(${SDL2_INCLUDE_DIR}
                     ${SDL2_IMAGE_INCLUDE_DIR}
                     ${SDL2_MIXER_INCLUDE_DIR}
-                    ${SDL2_TTF_INCLUDE_DIR})
+                    ${SDL2_TTF_INCLUDE_DIR}
+                    ${GLEW_INCLUDE_DIR}
+)
 
 # load user source and header files
 file(GLOB_RECURSE SOURCE_FILES "src/*.h" "src/*.cpp")
@@ -72,4 +79,8 @@ target_link_libraries(${PROJECT_NAME}
         ${SDL2_LIBRARY}
         ${SDL2_IMAGE_LIBRARIES}
         ${SDL2_MIXER_LIBRARIES}
-        ${SDL2_TTF_LIBRARIES})
+        ${SDL2_TTF_LIBRARIES}
+        ${GLEW_LIBRARIES}
+)
+
+message("Hello")

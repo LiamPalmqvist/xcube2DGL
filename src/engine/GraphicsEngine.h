@@ -13,8 +13,8 @@
 #include "GameMath.h"
 
 /* ENGINE DEFAULT SETTINGS */
-static const int DEFAULT_WINDOW_WIDTH = 800;
-static const int DEFAULT_WINDOW_HEIGHT = 600;
+//static const int DEFAULT_WINDOW_WIDTH = 800;
+//static const int DEFAULT_WINDOW_HEIGHT = 600;
 
 static const SDL_Color SDL_COLOR_GRAY	= { 0x80, 0x80, 0x80 };
 static const SDL_Color SDL_COLOR_YELLOW = { 0xFF, 0xFF, 0 };
@@ -29,20 +29,24 @@ static const SDL_Color SDL_COLOR_PINK   = { 0xFF, 0xC0, 0xCB };
 static const SDL_Color SDL_COLOR_PURPLE = { 0x80, 0, 0x80 };
 static const SDL_Color SDL_COLOR_VIOLET = { 0xEE, 0x82, 0xEE };
 
+// gets a random colour - NOT from the static constants above
 inline SDL_Color getRandomColor(int minRGB, int maxRGB) {
 	SDL_Color color = { (Uint8)getRandom(minRGB, maxRGB), (Uint8)getRandom(minRGB, maxRGB), (Uint8)getRandom(minRGB, maxRGB) };
 	return color;
 }
 
+// Basic colour structure
 struct SDL_Colorf {
 	float r, g, b, a;
 };
 
+// creates an instance of an SDL_Colorf from an SDL_Color object
 inline SDL_Colorf toSDLColorf(SDL_Color color) {
 	SDL_Colorf colorf = { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f };
 	return colorf;
 }
 
+// creates an instance of an SDL_Color from an SDL_Colorf object
 inline SDL_Color toSDLColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	SDL_Color color = { r, g, b, a };
 	return color;

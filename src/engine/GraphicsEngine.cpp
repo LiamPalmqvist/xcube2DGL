@@ -1,3 +1,4 @@
+#include "GL_GraphicsEngine.h"
 #include "GraphicsEngine.h"
 
 SDL_Renderer * GraphicsEngine::renderer = nullptr;
