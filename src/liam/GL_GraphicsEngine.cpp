@@ -3,6 +3,7 @@
 //
 
 #include "GL_GraphicsEngine.h"
+#include "FileReader.h"
 
 SDL_GLContext gl_context = nullptr;
 static const GLchar* vertexSource =
@@ -14,12 +15,14 @@ static const GLchar* vertexSource =
 
 static const GLchar* fragmentSource =
 "#version 120\n"
+"uniform vec4 triangleColor;\n"
 "void main() {\n"
-"    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+"    gl_FragColor = vec4(triangleColor);\n"
 "}\n";
 
 GLuint program;
 GLuint vbo;
+GLuint ebo;
 GLfloat vertices[] = {
     0.0f, 0.5f,
     0.5f, -0.5f,
@@ -71,16 +74,16 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
     // actually create the GLEW context
     glewInit();
 
+    // grabbing context from compiled shaders
     program = GL_GraphicsEngine::common_get_shader_program(vertexSource, fragmentSource);
     attribute_coord2d = glGetAttribLocation(program, "coord2d");
+    attribute_colour = glGetUniformLocation(program, "triangleColor");
+    //GLint uniColor = glGetUniformLocation(program, "triangleColor");
+    //glUniform3f(uniColor, 1.0f, 1.0f, 0.0);
     std::cout << "Program: " << program << std::endl;
 
-    /* Buffer setup. */
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // this could be moved into drawRect()
+    
 
     /* Global draw state */
     glUseProgram(program);
@@ -91,7 +94,9 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
     
     glViewport(0, 0, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
+    // generate the vertex buffer object and the element buffer object
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
     printf("%u\n", vbo);
 }
 
@@ -185,7 +190,8 @@ GLuint GL_GraphicsEngine::common_get_shader_program(
     program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
-    glBindFragDataLocation(program, 0, "position");
+    //glBindFragDataLocation(program, 0, "position");
+    //glBindFragDataLocation(program, 0, "triangleColor");
     glLinkProgram(program);
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
@@ -211,23 +217,128 @@ GLuint GL_GraphicsEngine::common_get_shader_program(
     glDeleteShader(fragment_shader);
 
     glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    if (vertices == NULL) {
+    // bind the buffers to be worked in the next line
+    //glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // if the vertices is NOT NULL
+    if (vertices != NULL) {
+        // send the vertices to the buffer to be drawn statically
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        std::cout << "vertices empty" << std::endl;
+        std::cout << "vertices not empty" << std::endl;
     }
+    // get the attribute pointer for the "position" of the vertices
     glVertexAttribPointer(glGetFragDataLocation(program, "position"), 2, GL_FLOAT, GL_FALSE, 0, 0);
+    // and assign the array of vertices to the active buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    
 
     glUseProgram(program);
 
     return program;
 }
 
-void GL_GraphicsEngine::drawRect(GLfloat* vertices) {
-    glEnableVertexAttribArray(glGetFragDataLocation(program, "position"));
+void GL_GraphicsEngine::reloadShaders() {
+    string fileName = "shader.fragment";
+    FileReader reader;
+    const GLchar* shaderOutput;
+    
+    shaderOutput = reader.ReadFile(fileName)->c_str();
+    //std::cout << shaderOutput << endl;
+    common_get_shader_program(vertexSource, shaderOutput);
+}
+
+void GL_GraphicsEngine::drawTri(GLfloat verts[], GLfloat colour[]) {
+    GLfloat r = colour[0];
+    GLfloat g = colour[1];
+    GLfloat b = colour[2];
+    GLfloat a = 1.0f;
+
+    std::cout << sizeof(colour);
+
+    // check if there is alpha
+    if (sizeof(colour) == 8) {
+        a = colour[3];
+    }
+
+    /* Buffer setup. */
+    for (int i = 0; i < sizeof(verts) / GLfloat(1); i++) {
+        vertices[i] = verts[i];
+    }
+    
+    // bind the vertex buffer object to the GL_ARRAY_BUFFER
+    // which is what OpenGL uses to generate points on a screen
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    // and set our colour uniform to the parsed colours
+    //glUniform4f(attribute_colour, r, g, b, a);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // first, we need to assign the new verts to the globally drawn vertices
+    glEnableVertexAttribArray(attribute_coord2d);
     glDrawArrays(GL_TRIANGLES, 0, 3);
-    glDisableVertexAttribArray(glGetFragDataLocation(program, "position"));
+    glDisableVertexAttribArray(attribute_coord2d);
+}
+
+void GL_GraphicsEngine::drawRect(GLfloat verts[8], GLfloat colour[]) {
+    GLfloat r = colour[0];
+    GLfloat g = colour[1];
+    GLfloat b = colour[2];
+    GLfloat a = 1.0f;
+
+    // because we know that we are going to be drawing a single rect
+    // we can hard code the order the vertices are drawn
+    GLuint elements[6] = {
+        0, 1, 2, 
+        2, 3, 0
+    };
+
+    // need an array the size of the one parsed
+    // which will *always* be 8 because it's a single
+    // rect taking 4 coords of 2 floats
+    GLfloat rectVerts[8];
+
+    // std::cout << sizeof(colour);
+
+    // check if there is alpha
+    if (sizeof(colour) == 8) {
+        a = colour[3];
+    }
+
+    /* Buffer setup. */
+    for (int i = 0; i < sizeof(verts) / GLfloat(1); i++) {
+        rectVerts[i] = verts[i];
+    }
+
+    // generate the buffers needed (this could be done outside of the loop)
+    // bind the buffer to the GL_ARRAY_BUFFER
+    // this is what glDrawElements pulls from when drawing triangles
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // bind the vertices passed to the function to the buffer
+    glBufferData(GL_ARRAY_BUFFER, sizeof(rectVerts), rectVerts, GL_STATIC_DRAW);
+
+    // bind the element buffer object to the GL_ELEMENT_ARRAY_OBJECT
+    // which is what is used to reference the order to draw vertices
+    // in the GL_ARRAY_BUFFER
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    // bind the data in our elements array to the element buffer object
+    // used by the GL_ELEMENT_ARRAY_BUFFER
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
+
+    glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    //GLint uniColor = glGetUniformLocation(program, "triangleColor");
+    glUniform4f(attribute_colour, r, g, b, a);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // enable the vertices to be drawn
+    glEnableVertexAttribArray(attribute_coord2d);
+    // draw the elements
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    // disable the vertices from being drawn
+    glDisableVertexAttribArray(attribute_coord2d);
 }
 
 //

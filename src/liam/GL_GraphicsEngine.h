@@ -84,6 +84,7 @@ private:
 
 public:
     GLint attribute_coord2d;
+    GLint attribute_colour;
     ~GL_GraphicsEngine();
 
     //void useFont(TTF_Font * font);
@@ -112,7 +113,10 @@ public:
         const char* fragment_shader_source
     );
 
-    void drawRect(GLfloat * vertices);
+    void reloadShaders();
+
+    void drawTri(GLfloat verts[], GLfloat color[]);
+    void drawRect(GLfloat verts[], GLfloat colour[]);
 };
 
 
