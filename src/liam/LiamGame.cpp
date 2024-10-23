@@ -6,17 +6,17 @@
 
 #include "LiamGame.h"
 GLfloat dynamicVertices[] = {
-        -0.01f, 0.01f,
-        0.01f, -0.01f,
-        -0.01f, -0.01f,
-        0.01f, 0.01f
+    -0.01f, 0.01f,
+    0.01f, -0.01f,
+    -0.01f, -0.01f,
+    0.01f, 0.01f
 };
 
 GLfloat screenBorders[]{
-    0.0f, 0.0f,
-    0.0f, 1.0f,
+    -1.0f, -1.0f,
+    -1.0f, 1.0f,
     1.0f, 1.0f,
-    1.0f, 0.0f
+    1.0f, -1.0f
 };
 
 LiamGame::LiamGame() : running(true), paused(false), gameTime(0.0) {
@@ -47,6 +47,7 @@ int LiamGame::runMainLoop() {
 #endif
 
     while (running) {
+        
         gfx->setFrameStart();
         eventSystem->pollEvents();
 
@@ -82,8 +83,10 @@ void LiamGame::render() {
     //if (screenBorders[3] > 1.1) screenBorders[3] = -1;
     //if (screenBorders[5] < -1.1) screenBorders[5] = 1;
     GLfloat colour[4] = { 1.0f, 0.0f, 0.0f, 0.1f };
+    gfx->updateTime();
     gfx->drawRect(screenBorders, colour);
-    gfx->drawRect(dynamicVertices, colour);
+    //gfx->liam_drawRect(screenBorders, colour);
+    //gfx->drawRect(dynamicVertices, colour);
     
     //glEnableVertexAttribArray(gfx->attribute_coord2d);
     //glDrawArrays(GL_TRIANGLES, 0, 3);

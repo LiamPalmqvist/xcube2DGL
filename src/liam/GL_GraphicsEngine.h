@@ -11,6 +11,7 @@
 #include <string>
 #include <memory>
 #include <iostream>
+#include <chrono>
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -18,6 +19,7 @@
 #include <gl/glew.h>
 #include <GL/GL.h>
 
+#include "FileReader.h"
 #include "../engine/EngineCommon.h"
 #include "../engine/GameMath.h"
 
@@ -62,6 +64,9 @@ inline SDL_Color toSDLColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 }
 */
 
+
+using namespace std;
+
 // This class will be defined not using SDL's built-in render pipeline but instead
 // an OpenGL context to which I will be able to write to directly
 class GL_GraphicsEngine {
@@ -79,12 +84,21 @@ private:
     // definitions for fps trackers
     Uint32 fpsAverage, fpsPrevious, fpsStart, fpsEnd;
 
+    // the frame buffers for vertices, colours and textures
+    GLint posAttrib;
+    GLint colAttrib;
+    GLint texAttrib;
 
     GL_GraphicsEngine();
 
 public:
+    chrono::high_resolution_clock::time_point startTime;
+    chrono::high_resolution_clock::time_point currentTime;
+    float deltaTime;
     GLint attribute_coord2d;
     GLint attribute_colour;
+    GLfloat attribute_time;
+    
     ~GL_GraphicsEngine();
 
     //void useFont(TTF_Font * font);
@@ -110,13 +124,21 @@ public:
 
     GLuint common_get_shader_program(
         const char* vertex_shader_source,
+        const char* fragment_shader_source,
+        const GLfloat texture_image_source[]
+    );
+    void liam_get_shader_program(
+        const char* vertex_shader_source,
         const char* fragment_shader_source
     );
 
     void reloadShaders();
 
+    void updateTime();
+
     void drawTri(GLfloat verts[], GLfloat color[]);
     void drawRect(GLfloat verts[], GLfloat colour[]);
+    void liam_drawRect(GLfloat verts[8], GLfloat colour[]);
 };
 
 

@@ -21,6 +21,7 @@ protected:
     bool running;
     bool paused;
     double gameTime;
+    
 
     void update();
     void render();

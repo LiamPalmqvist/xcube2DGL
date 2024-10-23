@@ -1,9 +1,6 @@
+
 #include "MyGame.h"
 #include "LiamGame.h"
-#include "FileReader.h"
-#include <stdio.h>
-#include <SDL.h>
-#include <GL/glew.h>
 
 
 int main(int argc, char * args[]) {
