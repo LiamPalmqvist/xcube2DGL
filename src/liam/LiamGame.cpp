@@ -84,8 +84,8 @@ void LiamGame::render() {
     //if (screenBorders[5] < -1.1) screenBorders[5] = 1;
     GLfloat colour[4] = { 1.0f, 0.0f, 0.0f, 0.1f };
     gfx->updateTime();
-    gfx->drawRect(screenBorders, colour);
-    //gfx->liam_drawRect(screenBorders, colour);
+    //gfx->drawRect(screenBorders, colour);
+    gfx->liam_drawRect();
     //gfx->drawRect(dynamicVertices, colour);
     
     //glEnableVertexAttribArray(gfx->attribute_coord2d);

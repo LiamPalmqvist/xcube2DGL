@@ -31,6 +31,45 @@ static const GLchar* fragmentSource = R"glsl(
     }
 )glsl";
 
+static const GLchar* textureVertex = R"glsl(
+    #version 410
+    
+    // Input vertex data, different for all executions of this shader.
+    in vec2 position;
+    in vec3 color;
+    in vec2 texcoord;
+    in float deltaTime;
+    
+    // Output data ; will be interpolated for each fragment.
+    out vec3 Color;
+    out vec2 Texcoord;
+    out float DeltaTime;
+
+    void main() {
+        Color = color;
+        Texcoord = texcoord;
+        DeltaTime = deltaTime;
+        gl_Position = vec4(position, 0.0, 1.0);
+    }
+)glsl";
+
+static const GLchar* textureFragment = R"glsl(
+    #version 410
+
+    // Interpolated values from the vertex shaders
+    in vec3 Color;
+    in vec2 Texcoord;
+    in float DeltaTime;
+    
+    // Output data
+    uniform sampler2D tex; // The input texture.
+    // It seems like this is input by the main program
+
+    void main() {
+        gl_FragColor = texture(tex, Texcoord) * vec4(Color, 1.0);
+    }
+)glsl";
+
 static const GLchar* newVertices = R"glsl(
     #version 410 core
 
@@ -68,14 +107,49 @@ static const GLfloat pixels[] = {
     1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 0.0f
 };
 
-GLuint program;
-GLuint vbo; // This is the vertex buffer object
-GLuint ebo; // This is the entity buffer object
-GLuint tex; // This is the texture buffer object
+/*
 GLfloat vertices[] = {
     0.0f, 0.5f,
     0.5f, -0.5f,
     -0.5f, -0.5f
+};
+*/
+
+GLfloat vertices[] = {
+//   Position     
+    -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top - left
+     0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top - right
+     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom - right
+    -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom - left
+};
+
+GLfloat bigVertices[] = {
+    //   Position     Colour            Texcoords
+        -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top - left
+         1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top - right
+         1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom - right
+        -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom - left
+};
+
+GLint elements[] = {
+    0, 1, 2,
+    2, 3, 0
+};
+
+GLfloat texColors[] = {
+//  Colours
+    1.0f, 0.0f, 0.0f, // Top-left
+    0.0f, 1.0f, 0.0f, // Top-right
+    0.0f, 0.0f, 1.0f, // Bottom-right
+    1.0f, 1.0f, 1.0f, // Bottom-left
+};
+
+GLfloat texCoords[] = {
+//  Texture Coords
+    0.0f, 0.0f, // Top-left
+    1.0f, 0.0f, // Top-right
+    1.0f, 1.0f, // Bottom-right
+    0.0f, 1.0f  // Bottom-left
 };
 
 
@@ -130,14 +204,23 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
     cout << "GL Version: " << glGetString(GL_VERSION) << endl;
 
     /* Buffer setup. */
+	glGenVertexArrays(1, &vao); // Generate the vertex array object
+    glBindVertexArray(vao);
+
     glGenBuffers(1, &vbo); // Generate the buffer to use with the vertices
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    
     glGenBuffers(1, &ebo); // Generate the buffer to use with the entities
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+
     glGenTextures(1, &tex); // Generate the buffer to use with the loaded textures
     
     
     // grabbing context from compiled shaders
-    GL_GraphicsEngine::liam_get_shader_program(newVertices, newFrag);
+    GL_GraphicsEngine::liam_get_shader_program(textureVertex, textureFragment);
+    //GL_GraphicsEngine::liam_get_shader_program(vertexSource, fragmentSource);
     //GL_GraphicsEngine::common_get_shader_program(vertexSource, fragmentSource, pixels);
+	//GL_GraphicsEngine::common_get_shader_program(textureVertex, textureFragment, pixels);
     
 
     //GLint uniColor = glGetUniformLocation(program, "triangleColor");
@@ -174,7 +257,6 @@ void GL_GraphicsEngine::setFrameStart() {
 
 void GL_GraphicsEngine::clearScreen() {
     glClear(GL_COLOR_BUFFER_BIT);
-
 }
 
 void GL_GraphicsEngine::showScreen() {
@@ -208,6 +290,8 @@ void GL_GraphicsEngine::liam_get_shader_program(
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
     glCompileShader(vertex_shader);
+    
+	// check for errors
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
     glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &log_length);
 
@@ -225,6 +309,8 @@ void GL_GraphicsEngine::liam_get_shader_program(
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
     glCompileShader(fragment_shader);
+
+	// check for errors
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
     glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &log_length);
 
@@ -238,11 +324,6 @@ void GL_GraphicsEngine::liam_get_shader_program(
         exit(EXIT_FAILURE);
     }
 
-    // load image
-    int width, height;
-    SDL_Surface* image = IMG_Load("sample.png");
-
-
     // create a program and link everything to it
     program = glCreateProgram();
     glAttachShader(program, vertex_shader);
@@ -250,14 +331,31 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glBindFragDataLocation(program, 0, "outColor");
     glLinkProgram(program);
     
-    posAttrib = glGetUniformLocation(program, "position");
-    colAttrib = glGetUniformLocation(program, "color");
-    texAttrib = glGetUniformLocation(program, "texcoord");
+	// specify the layout of the vertex data
+    posAttrib = glGetAttribLocation(program, "position");
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
     glEnableVertexAttribArray(posAttrib);
+    
+    colAttrib = glGetAttribLocation(program, "color");
+    glVertexAttribPointer(colAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(colAttrib);
-    glEnableVertexAttribArray(texAttrib);
 
-    // link image
+    texAttrib = glGetAttribLocation(program, "texcoord");
+    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(texAttrib);
+    
+    // load image
+    int width, height;
+    SDL_Surface* image = IMG_Load("sample.png");
+	if (nullptr == image) {
+		printf("Failed to load image\n");
+		exit(EXIT_FAILURE);
+    }
+    else {
+		printf("Image loaded\n");
+    }
+
+	// link image since the texture buffer has been generated
     glBindTexture(GL_TEXTURE_2D, tex);
     // Type, 0, colour space, width, height, 0, colour depth?, type of information, information
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->w, image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
@@ -266,6 +364,8 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// cleanup
+    //SDL_free(image);
 
     if (posAttrib == -1) {
         cout << "Position attribute not found" << endl;
@@ -289,7 +389,7 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glUseProgram(program);
 }
 
-GLuint GL_GraphicsEngine::common_get_shader_program(
+void GL_GraphicsEngine::common_get_shader_program(
     /* Takes a vertex shader source and a fragment shader source
     *  and compiles them into a shader program ready to use
     */
@@ -338,10 +438,20 @@ GLuint GL_GraphicsEngine::common_get_shader_program(
         printf("fragment shader compile error\n");
         exit(EXIT_FAILURE);
     }
+
+    // load image
+    int width, height;
+    SDL_Surface* image = IMG_Load("sample.png");
+    if (nullptr == image) {
+        printf("Failed to load image\n");
+        exit(EXIT_FAILURE);
+    }
+    else {
+        printf("Image loaded\n");
+    }
     
 
     /* Link shaders */
-    program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
     //glBindFragDataLocation(program, 0, "position");
@@ -361,40 +471,50 @@ GLuint GL_GraphicsEngine::common_get_shader_program(
     }
     */
 
-    attribute_coord2d = glGetAttribLocation(program, "coord2d");
-    attribute_colour = glGetUniformLocation(program, "triangleColor");
-    attribute_time = glGetUniformLocation(program, "u_time");
+    posAttrib = glGetAttribLocation(program, "position");
+    colAttrib = glGetUniformLocation(program, "color");
+    texAttrib = glGetUniformLocation(program, "texcoord");
+	timeAttrib = glGetUniformLocation(program, "deltaTime");
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
+    glVertexAttribPointer(colAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(posAttrib);
+    glEnableVertexAttribArray(colAttrib);
+    glEnableVertexAttribArray(texAttrib);
 
     std::cout << "Vertex Shader: " << vertex_shader << std::endl;
     std::cout << "Fragment Shader: " << fragment_shader << std::endl;
     std::cout << "Program: " << program << std::endl;
 
     /* link image */
-    glTexImage2D(GL_TEXTURE_2D, 2, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, texture_image_source);
-
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->w, image->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->pixels);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     /* Cleanup. */
     free(log);
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
+    //glDeleteShader(vertex_shader);
+    //glDeleteShader(fragment_shader);
 
     //glGenBuffers(1, &vbo); // we don't need to regenerate the buffer object
     // bind the buffers to be worked in the next line
     //glBindBuffer(GL_ARRAY_BUFFER, vbo); // nor do we need to bind it again
     // if the vertices is NOT NULL
-    if (vertices != NULL) {
-        // send the vertices to the buffer to be drawn statically
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        std::cout << "vertices not empty" << std::endl;
-    }
+    //if (vertices != NULL) {
+    //    // send the vertices to the buffer to be drawn statically
+    //    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    //    std::cout << "vertices not empty" << std::endl;
+    //}
     // get the attribute pointer for the "position" of the vertices
     glVertexAttribPointer(glGetFragDataLocation(program, "position"), 2, GL_FLOAT, GL_FALSE, 0, 0);
     // and assign the array of vertices to the active buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glUseProgram(program);
-
-    return program;
 }
 
 void GL_GraphicsEngine::reloadShaders() {
@@ -413,6 +533,7 @@ void GL_GraphicsEngine::reloadShaders() {
     string texName = "texture.png";
     const GLfloat* textureOutput;
     textureOutput = pixels;
+
     // since the texture and function don't currently exist
     // this is commented out
     // textureOutPut = reader.ReadTexture(texName);
@@ -478,7 +599,7 @@ void GL_GraphicsEngine::drawTri(GLfloat verts[], GLfloat colour[]) {
     glDisableVertexAttribArray(attribute_coord2d);
 }
 
-void GL_GraphicsEngine::drawRect(GLfloat verts[8], GLfloat colour[]) {
+void GL_GraphicsEngine::drawRect(GLfloat verts[], GLfloat colour[]) {
     GLfloat r = colour[0];
     GLfloat g = colour[1];
     GLfloat b = colour[2];
@@ -553,65 +674,56 @@ void GL_GraphicsEngine::drawRect(GLfloat verts[8], GLfloat colour[]) {
     glDisableVertexAttribArray(attribute_coord2d);
 }
 
-void GL_GraphicsEngine::liam_drawRect(GLfloat verts[8], GLfloat colour[]) {
-    GLfloat r = colour[0];
-    GLfloat g = colour[1];
-    GLfloat b = colour[2];
-    GLfloat a = 1.0f;
-
-    // because we know that we are going to be drawing a single rect
-    // we can hard code the order the vertices are drawn
+void GL_GraphicsEngine::liam_drawRect() {
+    // First set up vertex elements
     GLuint elements[6] = {
         0, 1, 2,
         2, 3, 0
     };
 
-    // need an array the size of the one parsed
-    // which will *always* be 8 because it's a single
-    // rect taking 4 coords of 2 floats
-    GLfloat rectVerts[8];
+    // Bind the data in `vertices` to the vbo (vertex buffer object)
+    // linked to the GL_ARRAY_BUFFER
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bigVertices), bigVertices, GL_STATIC_DRAW);
 
-    // std::cout << sizeof(colour);
+    // as with the elements
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
-    // check if there is alpha
-    if (sizeof(colour) == 8) {
-        a = colour[3];
-    }
+    // then, since we've already created and compiled the vertex and fragment shaders
+	// we can just use them
+	//glUseProgram(program);
 
-    /* Buffer setup. */
-    for (int i = 0; i < sizeof(verts) / GLfloat(1); i++) {
-        rectVerts[i] = verts[i];
-    }
-
-    // generate the buffers needed (this could be done outside of the loop)
-    // bind the buffer to the GL_ARRAY_BUFFER
-    // this is what glDrawElements pulls from when drawing triangles
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    // bind the vertices passed to the function to the buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(rectVerts), rectVerts, GL_STATIC_DRAW);
-
-    // bind the element buffer object to the GL_ELEMENT_ARRAY_OBJECT
-    // which is what is used to reference the order to draw vertices
-    // in the GL_ARRAY_BUFFER
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    // bind the data in our elements array to the element buffer object
-    // used by the GL_ELEMENT_ARRAY_BUFFER
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-
-
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    //GLint uniColor = glGetUniformLocation(program, "triangleColor");
-    glUniform4f(colAttrib, r, g, b, a);
-    //cout << deltaTime << endl;
-    //cout << "Attribute_Time" << attribute_time << endl;
-    //glUniform1f(attribute_time, deltaTime);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // enable the vertices to be drawn
-    glEnableVertexAttribArray(posAttrib);
+	// bind the vertex array object
+	//glBindVertexArray(vao);
+	
+    // bind the vertex buffer object
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	
+    // bind the element buffer object
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	
+    
+    // set the attribute pointers
+	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
+	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+	
+    
+    // enable the attributes
+	glEnableVertexAttribArray(posAttrib);
+	glEnableVertexAttribArray(colAttrib);
+	glEnableVertexAttribArray(texAttrib);
+	
+    // bind the texture
+	glBindTexture(GL_TEXTURE_2D, tex);
+	
     // draw the elements
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    // disable the vertices from being drawn
-    glDisableVertexAttribArray(posAttrib);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	
+    
+    // disable the attributes
+	glDisableVertexAttribArray(posAttrib);
+	glDisableVertexAttribArray(colAttrib);
+	glDisableVertexAttribArray(texAttrib);
+
 }
 

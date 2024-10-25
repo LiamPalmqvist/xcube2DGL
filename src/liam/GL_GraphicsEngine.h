@@ -84,10 +84,18 @@ private:
     // definitions for fps trackers
     Uint32 fpsAverage, fpsPrevious, fpsStart, fpsEnd;
 
+	// definitions for buffer objects
+	GLuint vao; // Vertex Array Object
+	GLuint vbo; // Vertex Buffer Object
+	GLuint ebo; // Element Buffer Object
+	GLuint tex; // Texture Buffer Object
+	GLuint program; // Shader Program Object
+
     // the frame buffers for vertices, colours and textures
-    GLint posAttrib;
-    GLint colAttrib;
-    GLint texAttrib;
+	GLint posAttrib;    // Position Attribute
+	GLint colAttrib;    // Colour Attribute
+	GLint texAttrib;    // Texture Attribute
+	GLint timeAttrib;   // Time Attribute
 
     GL_GraphicsEngine();
 
@@ -122,7 +130,7 @@ public:
 
     void adjustFPSDelay(const Uint32 &delay);
 
-    GLuint common_get_shader_program(
+    void common_get_shader_program(
         const char* vertex_shader_source,
         const char* fragment_shader_source,
         const GLfloat texture_image_source[]
@@ -138,7 +146,7 @@ public:
 
     void drawTri(GLfloat verts[], GLfloat color[]);
     void drawRect(GLfloat verts[], GLfloat colour[]);
-    void liam_drawRect(GLfloat verts[8], GLfloat colour[]);
+    void liam_drawRect();
 };
 
 

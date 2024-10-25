@@ -32,14 +32,3 @@ void FileReader::WriteFile() {
 	myFile.close();
 	return;
 }
-
-/*void readImage() {
-	string out;
-
-	ifstream file = ifstream("sample.png");
-
-	if (file.is_open()) {
-		while(get)
-	}
-}
-*/
