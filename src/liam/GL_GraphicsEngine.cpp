@@ -4,33 +4,6 @@
 
 #include "GL_GraphicsEngine.h"
 
-SDL_GLContext gl_context = nullptr;
-static const GLchar* vertexSource = R"glsl(
-    #version 410
-
-    in vec2 coord2d;
-
-    void main() {
-        gl_Position = vec4(coord2d, 0.0, 1.0);
-    }
-)glsl";
-
-static const GLchar* fragmentSource = R"glsl(
-    #version 410
-    precision mediump float;
-
-    uniform vec2 u_resolution = vec2(800, 600);
-    uniform float u_time = 0;
-
-    void main() {
-        vec2 st = gl_FragCoord.xy / u_resolution.xy;
-        st.x *= u_resolution.x / u_resolution.y;
-        vec3 color = vec3(0.0);
-        color = vec3(0, st.x, /*(st.x+st.y)*/ abs(sin(u_time)));
-        gl_FragColor = vec4(color, 1.0);
-    }
-)glsl";
-
 static const GLchar* textureVertex = R"glsl(
     #version 410
     
@@ -38,17 +11,14 @@ static const GLchar* textureVertex = R"glsl(
     in vec2 position;
     in vec3 color;
     in vec2 texcoord;
-    in float deltaTime;
-    
-    // Output data ; will be interpolated for each fragment.
+        
+    // Output data - will be interpolated for each fragment.
     out vec3 Color;
     out vec2 Texcoord;
-    out float DeltaTime;
 
     void main() {
         Color = color;
         Texcoord = texcoord;
-        DeltaTime = deltaTime;
         gl_Position = vec4(position, 0.0, 1.0);
     }
 )glsl";
@@ -57,66 +27,27 @@ static const GLchar* textureFragment = R"glsl(
     #version 410
 
     // Interpolated values from the vertex shaders
-    in vec3 Color;
+    in vec3 Color;      
     in vec2 Texcoord;
-    in float DeltaTime;
-    
+
     // Output data
+    out vec4 outColor;
+
     uniform sampler2D tex; // The input texture.
     // It seems like this is input by the main program
+    uniform float deltaTime;
+    //uniform vec2 resolution;
 
     void main() {
-        gl_FragColor = texture(tex, Texcoord) * vec4(Color, 1.0);
+        //outColor = texture(tex, Texcoord) * vec4(Color, 1.0);
+        vec3 colour = 0.5 + 0.5*cos(deltaTime+Texcoord.xyx + vec3(0, 2, 4));
+        outColor = vec4(colour, 1.0);
     }
 )glsl";
 
-static const GLchar* newVertices = R"glsl(
-    #version 410 core
-
-    in vec2 position;
-    in vec3 color;
-    in vec2 texcoord;
-    
-    out vec3 Color;
-    out vec2 Texcoord;
-
-    void main() {
-        Color = color;
-        Texcoord = texcoord;
-        gl_Position = vec4(position, 0.0, 1.0);
-    }
-)glsl";
-
-static const GLchar* newFrag = R"glsl(
-    #version 410 core
-
-    in vec3 Color;
-    in vec2 Texcoord;
-    uniform sampler2D tex;
-
-    void main() {
-        gl_FragColor = texture(tex, Texcoord) * vec4(Color, 1.0);
-    }
-)glsl";
-
-
-
-// black and white checkerboard
-static const GLfloat pixels[] = {
-    0.0f, 0.0f, 0.0f,   1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 0.0f
-};
-
-/*
-GLfloat vertices[] = {
-    0.0f, 0.5f,
-    0.5f, -0.5f,
-    -0.5f, -0.5f
-};
-*/
 
 GLfloat vertices[] = {
-//   Position     
+	//   Position     Colour        Texcoords
     -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top - left
      0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top - right
      0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom - right
@@ -124,34 +55,17 @@ GLfloat vertices[] = {
 };
 
 GLfloat bigVertices[] = {
-    //   Position     Colour            Texcoords
-        -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top - left
-         1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top - right
-         1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom - right
-        -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom - left
+//   Position     Colour            Texcoords
+    -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top - left
+     1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top - right
+     1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom - right
+    -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom - left
 };
 
 GLint elements[] = {
     0, 1, 2,
     2, 3, 0
 };
-
-GLfloat texColors[] = {
-//  Colours
-    1.0f, 0.0f, 0.0f, // Top-left
-    0.0f, 1.0f, 0.0f, // Top-right
-    0.0f, 0.0f, 1.0f, // Bottom-right
-    1.0f, 1.0f, 1.0f, // Bottom-left
-};
-
-GLfloat texCoords[] = {
-//  Texture Coords
-    0.0f, 0.0f, // Top-left
-    1.0f, 0.0f, // Top-right
-    1.0f, 1.0f, // Bottom-right
-    0.0f, 1.0f  // Bottom-left
-};
-
 
 
 /**
@@ -183,9 +97,9 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
     }
 
     // Creating the context so that we can actually have stuff on the window
-    gl_context = SDL_GL_CreateContext(window);
+    gl_Context = SDL_GL_CreateContext(window);
 
-    if (nullptr == gl_context) {
+    if (nullptr == gl_Context) {
         throw EngineException("Failed to create OpenGL context", SDL_GetError());
     }
 
@@ -225,10 +139,7 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
 
     //GLint uniColor = glGetUniformLocation(program, "triangleColor");
     //glUniform3f(uniColor, 1.0f, 1.0f, 0.0);
-    std::cout << "Program: " << program << std::endl;
-
-    // this could be moved into drawRect()
-    
+    std::cout << "Program: " << program << std::endl;    
 
     /* Global draw state */
     //glUseProgram(program);
@@ -246,7 +157,7 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
 GL_GraphicsEngine::~GL_GraphicsEngine() {
     IMG_Quit();
     TTF_Quit();
-    SDL_GL_DeleteContext(glContext);
+    SDL_GL_DeleteContext(gl_Context);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -281,10 +192,19 @@ void GL_GraphicsEngine::liam_get_shader_program(
     const char* vertex_shader_source,
     const char* fragment_shader_source
 ) {
+    if (sizeof(fragment_shader_source) == NULL) {
+        printf("Fragment shader source is NULL\n");
+        return;
+	}
+	else if (sizeof(vertex_shader_source) == NULL) {
+		printf("Vertex shader source is NULL\n");
+		return;
+	}
+
     // create vars
     GLchar* log = NULL;
     GLint log_length, success;
-    GLuint program, vertex_shader, fragment_shader;
+    GLuint vertex_shader, fragment_shader;
 
     // compile vertex shader
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -299,6 +219,8 @@ void GL_GraphicsEngine::liam_get_shader_program(
     if (log_length > 0) {
         glGetShaderInfoLog(vertex_shader, log_length, NULL, log);
         printf("vertex shader log:\n\n%s\n", log);
+		printf("parsed vertex shader:\n\n%s\n", vertex_shader_source);
+		printf("parsed vertex shader length: %d\n", sizeof(vertex_shader_source));
     }
     if (!success) {
         printf("vertex shader compile error\n");
@@ -318,10 +240,13 @@ void GL_GraphicsEngine::liam_get_shader_program(
         log = (GLchar*)realloc(log, log_length);
         glGetShaderInfoLog(fragment_shader, log_length, NULL, log);
         printf("fragment shader log:\n\n%s\n", log);
+		printf("parsed fragment shader:\n\n%s\n", fragment_shader_source);
+        //cout << "parsed fragment shader length:" << sizeof(fragment_shader_source) << endl;
     }
     if (!success) {
         printf("fragment shader compile error\n");
-        exit(EXIT_FAILURE);
+        return;
+        //exit(EXIT_FAILURE);
     }
 
     // create a program and link everything to it
@@ -343,7 +268,11 @@ void GL_GraphicsEngine::liam_get_shader_program(
     texAttrib = glGetAttribLocation(program, "texcoord");
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
     glEnableVertexAttribArray(texAttrib);
-    
+
+    timeAttrib = glGetUniformLocation(program, "deltaTime");
+
+    resAttrib = glGetUniformLocation(program, "resolution");
+
     // load image
     int width, height;
     SDL_Surface* image = IMG_Load("sample.png");
@@ -357,15 +286,15 @@ void GL_GraphicsEngine::liam_get_shader_program(
 
 	// link image since the texture buffer has been generated
     glBindTexture(GL_TEXTURE_2D, tex);
-    // Type, 0, colour space, width, height, 0, colour depth?, type of information, information
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->w, image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
+    //           target,        level, internal format,  width,    height,   border, format,  type,             data
+    glTexImage2D(GL_TEXTURE_2D, 0,     GL_RGBA,          image->w, image->h, 0,      GL_RGBA, GL_UNSIGNED_BYTE, image->pixels);
     // image params
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// cleanup
-    //SDL_free(image);
+    SDL_free(image);
 
     if (posAttrib == -1) {
         cout << "Position attribute not found" << endl;
@@ -387,6 +316,7 @@ void GL_GraphicsEngine::liam_get_shader_program(
     }
 
     glUseProgram(program);
+    glUniform2i(resAttrib, 800, 600);
 }
 
 void GL_GraphicsEngine::common_get_shader_program(
@@ -521,29 +451,14 @@ void GL_GraphicsEngine::reloadShaders() {
     string fileName = "shader.fragment";
     FileReader reader;
     const GLchar* shaderOutput;
-    
+
     shaderOutput = reader.ReadFile(fileName)->c_str();
     //std::cout << shaderOutput << endl;
-    
-    //attribute_colour = glGetUniformLocation(program, "triangleColor");
-    // since the colours are generated inside of the shader
-    // we don't need to use this.
 
-    // load the texture we made here
-    string texName = "texture.png";
-    const GLfloat* textureOutput;
-    textureOutput = pixels;
-
-    // since the texture and function don't currently exist
-    // this is commented out
-    // textureOutPut = reader.ReadTexture(texName);
-    
     // load the shaders we grabbed
     // This might have an image param later
 
-    common_get_shader_program(vertexSource, shaderOutput, textureOutput);
-    attribute_coord2d = glGetAttribLocation(program, "coord2d");
-    attribute_time = glGetUniformLocation(program, "u_time");
+    liam_get_shader_program(textureVertex, shaderOutput);
 
     int count;
     int size;
@@ -556,11 +471,13 @@ void GL_GraphicsEngine::reloadShaders() {
         glGetActiveUniform(program, (GLuint)i, bufSize, &length, &size, &type, name);
         cout << "Uniform: " << i << " Type: " << type << " Name: " << name << endl;
     }
+    cout << count << endl;
 }
 
 void GL_GraphicsEngine::updateTime() {
     currentTime = chrono::high_resolution_clock::now();
     deltaTime = chrono::duration_cast<chrono::duration<float>>(currentTime - startTime).count();
+    glUniform1f(timeAttrib, deltaTime);
 }
 
 void GL_GraphicsEngine::drawTri(GLfloat verts[], GLfloat colour[]) {
@@ -585,7 +502,7 @@ void GL_GraphicsEngine::drawTri(GLfloat verts[], GLfloat colour[]) {
     // bind the vertex buffer object to the GL_ARRAY_BUFFER
     // which is what OpenGL uses to generate points on a screen
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bigVertices), bigVertices, GL_STATIC_DRAW);
     glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
     // and set our colour uniform to the parsed colours
@@ -687,19 +604,6 @@ void GL_GraphicsEngine::liam_drawRect() {
 
     // as with the elements
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-
-    // then, since we've already created and compiled the vertex and fragment shaders
-	// we can just use them
-	//glUseProgram(program);
-
-	// bind the vertex array object
-	//glBindVertexArray(vao);
-	
-    // bind the vertex buffer object
-	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	
-    // bind the element buffer object
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	
     
     // set the attribute pointers

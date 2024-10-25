@@ -61,7 +61,7 @@ int LiamGame::runMainLoop() {
         // renderUI();
         gfx->showScreen();
 
-        gfx->adjustFPSDelay(16); // hard coded to ~60 FPS at the moment
+        gfx->adjustFPSDelay(8); // hard coded to ~120 FPS at the moment
     }
 
 #ifdef __DEBUG
@@ -72,25 +72,8 @@ int LiamGame::runMainLoop() {
 }
 
 void LiamGame::render() {
-    // This draws a triangle at the screen borders at
-    // [Top right]
-    // [Bottom left]
-    // [Bottom right]
-    //screenBorders[0] -= 0.1;
-    //screenBorders[3] += 0.1;
-    //screenBorders[5] -= 0.1;
-    //if (screenBorders[0] < -1.1) screenBorders[0] = 1;
-    //if (screenBorders[3] > 1.1) screenBorders[3] = -1;
-    //if (screenBorders[5] < -1.1) screenBorders[5] = 1;
-    GLfloat colour[4] = { 1.0f, 0.0f, 0.0f, 0.1f };
     gfx->updateTime();
-    //gfx->drawRect(screenBorders, colour);
-    gfx->liam_drawRect();
-    //gfx->drawRect(dynamicVertices, colour);
-    
-    //glEnableVertexAttribArray(gfx->attribute_coord2d);
-    //glDrawArrays(GL_TRIANGLES, 0, 3);
-    //glDisableVertexAttribArray(gfx->attribute_coord2d);
+    gfx->liam_drawRect(); 
 }
 
 void LiamGame::update() {

@@ -73,7 +73,7 @@ class GL_GraphicsEngine {
     friend class GL_XCube2dEngine;
 private:
     SDL_Window * window;
-    SDL_GLContext glContext;
+    SDL_GLContext gl_Context = nullptr;
 
     // This is the colour we will draw to the screen
     SDL_Color drawColor;
@@ -85,17 +85,18 @@ private:
     Uint32 fpsAverage, fpsPrevious, fpsStart, fpsEnd;
 
 	// definitions for buffer objects
-	GLuint vao; // Vertex Array Object
-	GLuint vbo; // Vertex Buffer Object
-	GLuint ebo; // Element Buffer Object
-	GLuint tex; // Texture Buffer Object
+	GLuint vao;     // Vertex Array Object
+	GLuint vbo;     // Vertex Buffer Object
+	GLuint ebo;     // Element Buffer Object
+	GLuint tex;     // Texture Buffer Object
 	GLuint program; // Shader Program Object
 
     // the frame buffers for vertices, colours and textures
-	GLint posAttrib;    // Position Attribute
-	GLint colAttrib;    // Colour Attribute
-	GLint texAttrib;    // Texture Attribute
-	GLint timeAttrib;   // Time Attribute
+	GLint posAttrib;    // Position   Attribute
+	GLint colAttrib;    // Colour     Attribute
+	GLint texAttrib;    // Texture    Attribute
+	GLint timeAttrib;   // Time       Attribute
+    GLint resAttrib;    // Resolution Attribute
 
     GL_GraphicsEngine();
 
