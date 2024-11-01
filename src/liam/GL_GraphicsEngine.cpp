@@ -24,9 +24,10 @@ static const GLchar* textureVertex = R"glsl(
 )glsl";
 
 static const GLchar* textureFragment = R"glsl(
-#version 410
-uniform vec2 resolution = vec2(800, 600);
-uniform float deltaTime;
+uniform vec2 iResolution = vec2(800, 600);
+uniform float iDeltaTime;
+uniform float progress;
+uniform float PI = 3.1415926;
 
 out vec4 outColor;
 
@@ -41,7 +42,7 @@ vec3 palette( float t ) {
 
 //https://www.shadertoy.com/view/mtyGWy
 void main() {
-    vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / resolution.y;
+    vec2 uv = (gl_FragCoord.xy * 2.0 - iResolution.xy) / iResolution.y;
     vec2 uv0 = uv;
     vec3 finalColor = vec3(0.0);
     
@@ -50,9 +51,9 @@ void main() {
 
         float d = length(uv) * exp(-length(uv0));
 
-        vec3 col = palette(length(uv0) + i*.4 + deltaTime*.4);
+        vec3 col = palette(length(uv0) + i*.4 + iDeltaTime*.4);
 
-        d = sin(d*8. + deltaTime)/8.;
+        d = sin(d*8. + iDeltaTime)/8.;
         d = abs(d);
 
         d = pow(0.01 / d, 1.2);
@@ -264,7 +265,7 @@ void GL_GraphicsEngine::liam_get_shader_program(
         log = (GLchar*)realloc(log, log_length);
         glGetShaderInfoLog(fragment_shader, log_length, NULL, log);
         printf("fragment shader log:\n\n%s\n", log);
-		printf("parsed fragment shader:\n\n%s\n", fragment_shader_source);
+		//printf("parsed fragment shader:\n\n%s\n", fragment_shader_source);
         free(log);
         //cout << "parsed fragment shader length:" << sizeof(fragment_shader_source) << endl;
     }
@@ -295,11 +296,11 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
     glEnableVertexAttribArray(texAttrib);
 
-    timeAttrib = glGetUniformLocation(program, "deltaTime");
+    timeAttrib = glGetUniformLocation(program, "iDeltaTime");
 
 	progAttrib = glGetUniformLocation(program, "progress");
 
-    resAttrib = glGetUniformLocation(program, "resolution");
+    resAttrib = glGetUniformLocation(program, "iResolution");
 
     // load image
     int width, height;
@@ -488,7 +489,7 @@ void GL_GraphicsEngine::reloadShaders() {
     shaderOutput = output.c_str();
     
 
-    std::cout << "Shader reader output: " << endl << output << endl << endl;
+    //std::cout << "Shader reader output: " << endl << output << endl << endl;
 
     // load the shaders we grabbed
     // This might have an image param later
