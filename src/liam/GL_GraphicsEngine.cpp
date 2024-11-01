@@ -24,25 +24,44 @@ static const GLchar* textureVertex = R"glsl(
 )glsl";
 
 static const GLchar* textureFragment = R"glsl(
-    #version 410
+#version 410
+uniform vec2 resolution = vec2(800, 600);
+uniform float deltaTime;
 
-    // Interpolated values from the vertex shaders
-    in vec3 Color;      
-    in vec2 Texcoord;
+out vec4 outColor;
 
-    // Output data
-    out vec4 outColor;
+vec3 palette( float t ) {
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
+    vec3 d = vec3(0.263, 0.416, 0.557);
 
-    uniform sampler2D tex; // The input texture.
-    // It seems like this is input by the main program
-    uniform float deltaTime;
-    //uniform vec2 resolution;
+    return a + b*cos( 6.28318*(c*t+d) );
+}
 
-    void main() {
-        //outColor = texture(tex, Texcoord) * vec4(Color, 1.0);
-        vec3 colour = 0.5 + 0.5*cos(deltaTime+Texcoord.xyx + vec3(0, 2, 4));
-        outColor = vec4(colour, 1.0);
+//https://www.shadertoy.com/view/mtyGWy
+void main() {
+    vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / resolution.y;
+    vec2 uv0 = uv;
+    vec3 finalColor = vec3(0.0);
+    
+    for (float i = 0.0; i < 4.0; i++) {
+        uv = fract(uv * 1.5) - 0.5;
+
+        float d = length(uv) * exp(-length(uv0));
+
+        vec3 col = palette(length(uv0) + i*.4 + deltaTime*.4);
+
+        d = sin(d*8. + deltaTime)/8.;
+        d = abs(d);
+
+        d = pow(0.01 / d, 1.2);
+
+        finalColor += col * d;
     }
+        
+    outColor = vec4(finalColor, 1.0);
+}
 )glsl";
 
 
@@ -85,6 +104,7 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
             "The X-CUBE 2D Game Engine - OpenGL Version",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
+            //1920, 1080,
             SDL_WINDOW_OPENGL
     );
     // By sending the flag `SDL_WINDOW_OPENGL` we specify that we want the window to
@@ -190,7 +210,8 @@ void testDraw() {
 
 void GL_GraphicsEngine::liam_get_shader_program(
     const char* vertex_shader_source,
-    const char* fragment_shader_source
+    const char* fragment_shader_source,
+	const GLfloat texture_image_source[]
 ) {
     if (sizeof(fragment_shader_source) == NULL) {
         printf("Fragment shader source is NULL\n");
@@ -221,11 +242,14 @@ void GL_GraphicsEngine::liam_get_shader_program(
         printf("vertex shader log:\n\n%s\n", log);
 		printf("parsed vertex shader:\n\n%s\n", vertex_shader_source);
 		printf("parsed vertex shader length: %d\n", sizeof(vertex_shader_source));
+        free(log);
     }
     if (!success) {
         printf("vertex shader compile error\n");
+        free(log);
         exit(EXIT_FAILURE);
     }
+
 
     // compile fragment shader
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -241,10 +265,12 @@ void GL_GraphicsEngine::liam_get_shader_program(
         glGetShaderInfoLog(fragment_shader, log_length, NULL, log);
         printf("fragment shader log:\n\n%s\n", log);
 		printf("parsed fragment shader:\n\n%s\n", fragment_shader_source);
+        free(log);
         //cout << "parsed fragment shader length:" << sizeof(fragment_shader_source) << endl;
     }
     if (!success) {
         printf("fragment shader compile error\n");
+        //free(log);
         return;
         //exit(EXIT_FAILURE);
     }
@@ -271,6 +297,8 @@ void GL_GraphicsEngine::liam_get_shader_program(
 
     timeAttrib = glGetUniformLocation(program, "deltaTime");
 
+	progAttrib = glGetUniformLocation(program, "progress");
+
     resAttrib = glGetUniformLocation(program, "resolution");
 
     // load image
@@ -283,6 +311,9 @@ void GL_GraphicsEngine::liam_get_shader_program(
     else {
 		printf("Image loaded\n");
     }
+
+	glDeleteShader(vertex_shader);
+	glDeleteShader(fragment_shader);
 
 	// link image since the texture buffer has been generated
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -318,6 +349,7 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glUseProgram(program);
     glUniform2i(resAttrib, 800, 600);
 }
+
 
 void GL_GraphicsEngine::common_get_shader_program(
     /* Takes a vertex shader source and a fragment shader source
@@ -450,10 +482,13 @@ void GL_GraphicsEngine::common_get_shader_program(
 void GL_GraphicsEngine::reloadShaders() {
     string fileName = "shader.fragment";
     FileReader reader;
-    const GLchar* shaderOutput;
 
-    shaderOutput = reader.ReadFile(fileName)->c_str();
-    //std::cout << shaderOutput << endl;
+	output = reader.ReadFile(fileName);
+        
+    shaderOutput = output.c_str();
+    
+
+    std::cout << "Shader reader output: " << endl << output << endl << endl;
 
     // load the shaders we grabbed
     // This might have an image param later
@@ -475,9 +510,22 @@ void GL_GraphicsEngine::reloadShaders() {
 }
 
 void GL_GraphicsEngine::updateTime() {
+    if (reverse) progress -= 0.016f;
+    else progress += 0.016f;
+
+    if (progress >= 5.0f) {
+        progress = 5.0f;
+        reverse = true;
+    }
+    else if (progress <= 0.0f) {
+        progress = 0.0f;
+        reverse = false;
+    }
     currentTime = chrono::high_resolution_clock::now();
     deltaTime = chrono::duration_cast<chrono::duration<float>>(currentTime - startTime).count();
     glUniform1f(timeAttrib, deltaTime);
+    glUniform1f(progAttrib, progress / 5.0f);
+    //std::cout << progress << endl;
 }
 
 void GL_GraphicsEngine::drawTri(GLfloat verts[], GLfloat colour[]) {
@@ -591,7 +639,7 @@ void GL_GraphicsEngine::drawRect(GLfloat verts[], GLfloat colour[]) {
     glDisableVertexAttribArray(attribute_coord2d);
 }
 
-void GL_GraphicsEngine::liam_drawRect() {
+void GL_GraphicsEngine::drawShader() {
     // First set up vertex elements
     GLuint elements[6] = {
         0, 1, 2,

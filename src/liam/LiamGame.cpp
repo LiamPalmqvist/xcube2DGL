@@ -73,7 +73,7 @@ int LiamGame::runMainLoop() {
 
 void LiamGame::render() {
     gfx->updateTime();
-    gfx->liam_drawRect(); 
+    gfx->drawShader(); 
 }
 
 void LiamGame::update() {

@@ -4,17 +4,13 @@ FileReader::FileReader() {
 	
 }
 
-string * FileReader::ReadFile(string& fileName) {
-	string out;
-	
-	string line;
-
-	ifstream file = ifstream(fileName);
+string FileReader::ReadFile(string& fileName) {
+	file = ifstream(fileName);
 
 	if (file.is_open()) {
 		while (getline(file, line)) {
 			line = line.append("\n");
-			//cout << line;
+			cout << line;
 			out.append(line);
 		}
 		file.close();
@@ -22,7 +18,7 @@ string * FileReader::ReadFile(string& fileName) {
 	else {
 		cout << "unable to open file" << endl;
 	}
-	return &out;
+	return out;
 }
 
 void FileReader::WriteFile() {

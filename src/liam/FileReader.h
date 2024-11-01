@@ -11,9 +11,11 @@ public:
 
 	// declaration of the file to be parsed
 	ifstream file;
+	string line;
+	string out;
 	
 	// returns a pointer to the file's contents
-	string * FileReader::ReadFile(string &fileName);
+	string FileReader::ReadFile(string &fileName);
 	void FileReader::WriteFile();
 };
 

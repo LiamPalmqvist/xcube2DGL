@@ -97,6 +97,7 @@ private:
 	GLint texAttrib;    // Texture    Attribute
 	GLint timeAttrib;   // Time       Attribute
     GLint resAttrib;    // Resolution Attribute
+    GLint progAttrib;   // Progress   Attribute
 
     GL_GraphicsEngine();
 
@@ -104,9 +105,13 @@ public:
     chrono::high_resolution_clock::time_point startTime;
     chrono::high_resolution_clock::time_point currentTime;
     float deltaTime;
+    float progress;
+    bool reverse = false;
     GLint attribute_coord2d;
     GLint attribute_colour;
     GLfloat attribute_time;
+    const GLchar* shaderOutput;
+    string output;
     
     ~GL_GraphicsEngine();
 
@@ -138,7 +143,8 @@ public:
     );
     void liam_get_shader_program(
         const char* vertex_shader_source,
-        const char* fragment_shader_source
+        const char* fragment_shader_source,
+		const GLfloat texture_image_source[] = nullptr
     );
 
     void reloadShaders();
@@ -147,7 +153,7 @@ public:
 
     void drawTri(GLfloat verts[], GLfloat color[]);
     void drawRect(GLfloat verts[], GLfloat colour[]);
-    void liam_drawRect();
+    void drawShader();
 };
 
 
