@@ -4,6 +4,12 @@ std::shared_ptr<XCube2Engine> XCube2Engine::instance = nullptr;
 
 XCube2Engine::XCube2Engine() {
 	std::cout << "Initializing X-CUBE 2D v" << _ENGINE_VERSION_MAJOR << "." << _ENGINE_VERSION_MINOR << std::endl;
+	
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
 
 #ifdef __DEBUG
 	#if defined(_WIN32)
@@ -44,7 +50,8 @@ XCube2Engine::XCube2Engine() {
 
 	// init subsystems
 
-	gfxInstance = std::shared_ptr<GraphicsEngine>(new GraphicsEngine());
+	glGfxInstance = std::shared_ptr<GL_GraphicsEngine>(new GL_GraphicsEngine());
+	//gfxInstance = std::shared_ptr<GraphicsEngine>(new GraphicsEngine());
 
 #ifdef __DEBUG
 	debug("GraphicsEngine() successful");

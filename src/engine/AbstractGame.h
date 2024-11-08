@@ -13,6 +13,7 @@ class AbstractGame {
 		virtual ~AbstractGame();
 
 		/* Engine systems */
+		std::shared_ptr<GL_GraphicsEngine> glGfx;
 		std::shared_ptr<GraphicsEngine> gfx;
 		std::shared_ptr<AudioEngine> sfx;
 		std::shared_ptr<EventEngine> eventSystem;

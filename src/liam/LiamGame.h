@@ -5,11 +5,13 @@
 #ifndef MYGAME_LIAMGAME_H
 #define MYGAME_LIAMGAME_H
 
-#include "GL_XCube2d.h"
+#include "../engine/XCube2d.h"
 
 // This is what's gonna be in the main file (I think)
 class LiamGame {
 protected:
+
+	std::shared_ptr<XCube2Engine> engine = XCube2Engine::getInstance();
 
     /* Engine systems */
     std::shared_ptr<GL_GraphicsEngine> gfx;

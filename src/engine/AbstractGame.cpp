@@ -4,7 +4,7 @@ AbstractGame::AbstractGame() : running(true), paused(false), gameTime(0.0) {
 	std::shared_ptr<XCube2Engine> engine = XCube2Engine::getInstance();
 
 	// engine ready, get subsystems
-	gfx = engine->getGraphicsEngine();
+	glGfx = engine->getGlGraphicsEngine();
 	sfx = engine->getAudioEngine();
 	eventSystem = engine->getEventEngine();
 	physics = engine->getPhysicsEngine();
@@ -19,7 +19,7 @@ AbstractGame::~AbstractGame() {
 	// kill Game class' instance pointers
 	// so that engine is isolated from the outside world
 	// before shutting down
-	gfx.reset();
+	glGfx.reset();
 	eventSystem.reset();
 
 	// kill engine
@@ -38,7 +38,7 @@ int AbstractGame::runMainLoop() {
 #endif
 
 	while (running) {
-		gfx->setFrameStart();
+		glGfx->setFrameStart();
 		eventSystem->pollEvents();
 
 		if (eventSystem->isPressed(Key::ESC) || eventSystem->isPressed(Key::QUIT))
@@ -54,12 +54,12 @@ int AbstractGame::runMainLoop() {
 			gameTime += 0.016;	// 60 times a sec
 		}
 
-		gfx->clearScreen();
+		glGfx->clearScreen();
 		render();
 		renderUI();
-		gfx->showScreen();
+		glGfx->showScreen();
 
-		gfx->adjustFPSDelay(16);	// atm hardcoded to ~60 FPS
+		glGfx->adjustFPSDelay(16);	// atm hardcoded to ~60 FPS
 	}
 
 #ifdef __DEBUG

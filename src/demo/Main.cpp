@@ -1,11 +1,12 @@
 
-#include "MyGame.h"
+
 #include "LiamGame.h"
 
 
 int main(int argc, char * args[]) {
 
 	try {
+		// LiamGame is a modification of MyGame.cpp/.h
 		LiamGame game;
 		game.runMainLoop();
 	}

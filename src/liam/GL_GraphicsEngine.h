@@ -32,16 +32,16 @@ static const int DEFAULT_WINDOW_WIDTH = 800;
 static const int DEFAULT_WINDOW_HEIGHT = 600;
 /*
 static const SDL_Color SDL_COLOR_GRAY	= { 0x80, 0x80, 0x80 };
-static const SDL_Color SDL_COLOR_YELLOW = { 0xFF, 0xFF, 0 };
-static const SDL_Color SDL_COLOR_RED	= { 0xFF, 0, 0 };
-static const SDL_Color SDL_COLOR_GREEN	= { 0, 0xFF, 0 };
-static const SDL_Color SDL_COLOR_BLUE	= { 0, 0, 0xFF };
-static const SDL_Color SDL_COLOR_BLACK  = { 0, 0, 0 };
+static const SDL_Color SDL_COLOR_YELLOW = { 0xFF, 0xFF, 0x00 };
+static const SDL_Color SDL_COLOR_RED	= { 0xFF, 0x00, 0x00 };
+static const SDL_Color SDL_COLOR_GREEN	= { 0x00, 0xFF, 0x00 };
+static const SDL_Color SDL_COLOR_BLUE	= { 0x00, 0x00, 0xFF };
+static const SDL_Color SDL_COLOR_BLACK  = { 0x00, 0x00, 0x00 };
 static const SDL_Color SDL_COLOR_WHITE  = { 0xFF, 0xFF, 0xFF };
-static const SDL_Color SDL_COLOR_AQUA   = { 0, 0xFF, 0xFF };
-static const SDL_Color SDL_COLOR_ORANGE = { 0xFF, 0xA5, 0 };
+static const SDL_Color SDL_COLOR_AQUA   = { 0x00, 0xFF, 0xFF };
+static const SDL_Color SDL_COLOR_ORANGE = { 0xFF, 0xA5, 0x00 };
 static const SDL_Color SDL_COLOR_PINK   = { 0xFF, 0xC0, 0xCB };
-static const SDL_Color SDL_COLOR_PURPLE = { 0x80, 0, 0x80 };
+static const SDL_Color SDL_COLOR_PURPLE = { 0x80, 0x00, 0x80 };
 static const SDL_Color SDL_COLOR_VIOLET = { 0xEE, 0x82, 0xEE };
 
 inline SDL_Color getRandomColor(int minRGB, int maxRGB) {
@@ -70,7 +70,7 @@ using namespace std;
 // This class will be defined not using SDL's built-in render pipeline but instead
 // an OpenGL context to which I will be able to write to directly
 class GL_GraphicsEngine {
-    friend class GL_XCube2dEngine;
+	friend class XCube2dEngine;
 private:
     SDL_Window * window;
     SDL_GLContext gl_Context = nullptr;
@@ -79,29 +79,34 @@ private:
     SDL_Color drawColor;
 
     // the font we will draw to the screen. It is hard coded at the moment
-    TTF_Font * font;
+    TTF_Font * font = nullptr;
 
     // definitions for fps trackers
     Uint32 fpsAverage, fpsPrevious, fpsStart, fpsEnd;
+    SDL_Surface * image = nullptr;
 
 	// definitions for buffer objects
-	GLuint vao;     // Vertex Array Object
-	GLuint vbo;     // Vertex Buffer Object
-	GLuint ebo;     // Element Buffer Object
-	GLuint tex;     // Texture Buffer Object
-	GLuint program; // Shader Program Object
+	GLuint vao;             // Vertex   Array   Object
+	GLuint vbo;             // Vertex   Buffer  Object
+	GLuint ebo;             // Element  Buffer  Object
+	GLuint tex;             // Texture  Buffer  Object
+	GLuint program;         // Shader   Program Object
 
     // the frame buffers for vertices, colours and textures
-	GLint posAttrib;    // Position   Attribute
-	GLint colAttrib;    // Colour     Attribute
-	GLint texAttrib;    // Texture    Attribute
-	GLint timeAttrib;   // Time       Attribute
-    GLint resAttrib;    // Resolution Attribute
-    GLint progAttrib;   // Progress   Attribute
+	GLint posAttrib;        // Position   Attribute
+	GLint colAttrib;        // Colour     Attribute
+	GLint texAttrib;        // Texture    Attribute
+	GLint deltaTimeAttrib;  // Delta Time Attribute
+	GLint timeAttrib;       // Time       Attribute
+    GLint resAttrib;        // Resolution Attribute
+    GLint progAttrib;       // Progress   Attribute
 
-    GL_GraphicsEngine();
+    FileReader reader;      // Reader   Object
+    string textureFragment; // Texture  string
+
 
 public:
+    GL_GraphicsEngine();
     chrono::high_resolution_clock::time_point startTime;
     chrono::high_resolution_clock::time_point currentTime;
     float deltaTime;
@@ -111,7 +116,7 @@ public:
     GLint attribute_colour;
     GLfloat attribute_time;
     const GLchar* shaderOutput;
-    string output;
+    string output = "";
     
     ~GL_GraphicsEngine();
 
@@ -135,13 +140,12 @@ public:
     void showScreen();
 
     void adjustFPSDelay(const Uint32 &delay);
+    
+    void setVerticalSync(bool);
 
-    void common_get_shader_program(
-        const char* vertex_shader_source,
-        const char* fragment_shader_source,
-        const GLfloat texture_image_source[]
-    );
-    void liam_get_shader_program(
+    void useFont(TTF_Font * _font);
+
+    void get_shader_program(
         const char* vertex_shader_source,
         const char* fragment_shader_source,
 		const GLfloat texture_image_source[] = nullptr

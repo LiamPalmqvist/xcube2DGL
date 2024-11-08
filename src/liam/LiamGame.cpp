@@ -21,12 +21,11 @@ GLfloat screenBorders[]{
 
 LiamGame::LiamGame() : running(true), paused(false), gameTime(0.0) {
     // the main instance of the "Game"
-    std::shared_ptr<GL_XCube2dEngine> engine = GL_XCube2dEngine::getInstance();
 
     // engine ready, get subsystems
-    gfx = engine->getGraphicsEngine();
-    sfx = engine->getAudioInstance();
-    eventSystem = engine->getEventInstance();
+    gfx = engine->getGlGraphicsEngine();
+    sfx = engine->getAudioEngine();
+    eventSystem = engine->getEventEngine();
 }
 
 LiamGame::~LiamGame() {
@@ -37,7 +36,7 @@ LiamGame::~LiamGame() {
     eventSystem.reset();
 
     // kill engine
-    GL_XCube2dEngine::quit();
+    engine->quit();
 }
 
 int LiamGame::runMainLoop() {

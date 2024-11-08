@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "GraphicsEngine.h"
+#include "GL_GraphicsEngine.h"
 #include "AudioEngine.h"
 #include "EventEngine.h"
 #include "PhysicsEngine.h"
@@ -20,6 +21,7 @@ class XCube2Engine {
 	private:
 		static std::shared_ptr<XCube2Engine> instance;
 		std::shared_ptr<GraphicsEngine> gfxInstance;
+		std::shared_ptr<GL_GraphicsEngine> glGfxInstance;
 		std::shared_ptr<AudioEngine> audioInstance;
 		std::shared_ptr<EventEngine> eventInstance;
 		std::shared_ptr<PhysicsEngine> physicsInstance;
@@ -47,6 +49,7 @@ class XCube2Engine {
 		* @return approriate subsystem of the engine
 		*/
 		std::shared_ptr<GraphicsEngine> getGraphicsEngine() { return gfxInstance; }
+		std::shared_ptr<GL_GraphicsEngine> getGlGraphicsEngine() { return glGfxInstance; }
 		std::shared_ptr<AudioEngine> getAudioEngine() { return audioInstance; }
 		std::shared_ptr<EventEngine> getEventEngine() { return eventInstance; }
 		std::shared_ptr<PhysicsEngine> getPhysicsEngine() { return physicsInstance; }

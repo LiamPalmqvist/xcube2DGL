@@ -23,48 +23,6 @@ static const GLchar* textureVertex = R"glsl(
     }
 )glsl";
 
-static const GLchar* textureFragment = R"glsl(
-uniform vec2 iResolution = vec2(800, 600);
-uniform float iDeltaTime;
-uniform float progress;
-uniform float PI = 3.1415926;
-
-out vec4 outColor;
-
-vec3 palette( float t ) {
-    vec3 a = vec3(0.5, 0.5, 0.5);
-    vec3 b = vec3(0.5, 0.5, 0.5);
-    vec3 c = vec3(1.0, 1.0, 1.0);
-    vec3 d = vec3(0.263, 0.416, 0.557);
-
-    return a + b*cos( 6.28318*(c*t+d) );
-}
-
-//https://www.shadertoy.com/view/mtyGWy
-void main() {
-    vec2 uv = (gl_FragCoord.xy * 2.0 - iResolution.xy) / iResolution.y;
-    vec2 uv0 = uv;
-    vec3 finalColor = vec3(0.0);
-    
-    for (float i = 0.0; i < 4.0; i++) {
-        uv = fract(uv * 1.5) - 0.5;
-
-        float d = length(uv) * exp(-length(uv0));
-
-        vec3 col = palette(length(uv0) + i*.4 + iDeltaTime*.4);
-
-        d = sin(d*8. + iDeltaTime)/8.;
-        d = abs(d);
-
-        d = pow(0.01 / d, 1.2);
-
-        finalColor += col * d;
-    }
-        
-    outColor = vec4(finalColor, 1.0);
-}
-)glsl";
-
 
 GLfloat vertices[] = {
 	//   Position     Colour        Texcoords
@@ -150,12 +108,25 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
 
     glGenTextures(1, &tex); // Generate the buffer to use with the loaded textures
     
-    
+	// Grab default shaders
+    string fileName = "template.fragment";
+    reader.ReadFile(fileName, &output);
+    shaderOutput = output.data();
+
+    if (image == nullptr) {
+        image = IMG_Load("sample.png");
+        if (nullptr == image) {
+            printf("Failed to load image\n");
+            exit(EXIT_FAILURE);
+        }
+        else {
+            printf("Image loaded\n");
+        }
+    }
+    // load image
+
     // grabbing context from compiled shaders
-    GL_GraphicsEngine::liam_get_shader_program(textureVertex, textureFragment);
-    //GL_GraphicsEngine::liam_get_shader_program(vertexSource, fragmentSource);
-    //GL_GraphicsEngine::common_get_shader_program(vertexSource, fragmentSource, pixels);
-	//GL_GraphicsEngine::common_get_shader_program(textureVertex, textureFragment, pixels);
+    GL_GraphicsEngine::get_shader_program(textureVertex, shaderOutput);
     
 
     //GLint uniColor = glGetUniformLocation(program, "triangleColor");
@@ -204,16 +175,42 @@ void GL_GraphicsEngine::adjustFPSDelay(const Uint32 &delay) {
     }
 }
 
+void GL_GraphicsEngine::setVerticalSync(bool vsync) {
+    if (!SDL_SetHint(SDL_HINT_RENDER_VSYNC, vsync ? "1" : "0")) {
+        std::cout << "Failed to set VSYNC" << std::endl;
+        std::cout << SDL_GetError() << std::endl;
+    }
+#ifdef __DEBUG
+    debug("Current VSYNC:", SDL_GetHint(SDL_HINT_RENDER_VSYNC));
+#endif
+}
+
+void GL_GraphicsEngine::useFont(TTF_Font* _font) {
+    if (nullptr == _font) {
+#ifdef __DEBUG
+        debug("GraphicsEngine::useFont()", "font is null");
+#endif
+        return;
+    }
+
+    font = _font;
+}
+
 
 void testDraw() {
 
 }
 
-void GL_GraphicsEngine::liam_get_shader_program(
+void GL_GraphicsEngine::get_shader_program(
     const char* vertex_shader_source,
     const char* fragment_shader_source,
 	const GLfloat texture_image_source[]
 ) {
+    if (program != 0) {
+        //cout << program;
+        glDeleteProgram(program);
+    }
+
     if (sizeof(fragment_shader_source) == NULL) {
         printf("Fragment shader source is NULL\n");
         return;
@@ -233,6 +230,13 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
     glCompileShader(vertex_shader);
     
+    // compile fragment shader
+    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+    glCompileShader(fragment_shader);
+
+	
+
 	// check for errors
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
     glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &log_length);
@@ -242,7 +246,7 @@ void GL_GraphicsEngine::liam_get_shader_program(
         glGetShaderInfoLog(vertex_shader, log_length, NULL, log);
         printf("vertex shader log:\n\n%s\n", log);
 		printf("parsed vertex shader:\n\n%s\n", vertex_shader_source);
-		printf("parsed vertex shader length: %d\n", sizeof(vertex_shader_source));
+		//printf("parsed vertex shader length: %d\n", sizeof(vertex_shader_source));
         free(log);
     }
     if (!success) {
@@ -251,16 +255,8 @@ void GL_GraphicsEngine::liam_get_shader_program(
         exit(EXIT_FAILURE);
     }
 
-
-    // compile fragment shader
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
-    glCompileShader(fragment_shader);
-
-	// check for errors
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
     glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &log_length);
-
     if (log_length > 0) {
         log = (GLchar*)realloc(log, log_length);
         glGetShaderInfoLog(fragment_shader, log_length, NULL, log);
@@ -296,22 +292,10 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
     glEnableVertexAttribArray(texAttrib);
 
-    timeAttrib = glGetUniformLocation(program, "iDeltaTime");
-
+    deltaTimeAttrib = glGetUniformLocation(program, "iDeltaTime");
+	timeAttrib = glGetUniformLocation(program, "iTime");
 	progAttrib = glGetUniformLocation(program, "progress");
-
     resAttrib = glGetUniformLocation(program, "iResolution");
-
-    // load image
-    int width, height;
-    SDL_Surface* image = IMG_Load("sample.png");
-	if (nullptr == image) {
-		printf("Failed to load image\n");
-		exit(EXIT_FAILURE);
-    }
-    else {
-		printf("Image loaded\n");
-    }
 
 	glDeleteShader(vertex_shader);
 	glDeleteShader(fragment_shader);
@@ -325,10 +309,8 @@ void GL_GraphicsEngine::liam_get_shader_program(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	// cleanup
-    SDL_free(image);
-
-    if (posAttrib == -1) {
+    
+    /*if (posAttrib == -1) {
         cout << "Position attribute not found" << endl;
     }
     else {
@@ -345,157 +327,23 @@ void GL_GraphicsEngine::liam_get_shader_program(
     }
     else {
         cout << "Texture attribute found" << endl;
-    }
+    }*/
 
     glUseProgram(program);
     glUniform2i(resAttrib, 800, 600);
 }
 
-
-void GL_GraphicsEngine::common_get_shader_program(
-    /* Takes a vertex shader source and a fragment shader source
-    *  and compiles them into a shader program ready to use
-    */
-
-    const char* vertex_shader_source,
-    const char* fragment_shader_source,
-    const GLfloat texture_image_source[]
-) {
-    GLchar* log = NULL;
-    GLint log_length, success;
-    GLuint fragment_shader, program, vertex_shader;
-
-    /* Vertex shader */
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
-    glCompileShader(vertex_shader);
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-    glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &log_length);
-
-    
-    log = (GLchar *)malloc(log_length);
-    if (log_length > 0) {
-        glGetShaderInfoLog(vertex_shader, log_length, NULL, log);
-        printf("vertex shader log:\n\n%s\n", log);
-    }
-    if (!success) {
-        printf("vertex shader compile error\n");
-        exit(EXIT_FAILURE);
-    }
-    
-
-    /* Fragment shader */
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
-    glCompileShader(fragment_shader);
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-    glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &log_length);
-
-    
-    if (log_length > 0) {
-        log = (GLchar *)realloc(log, log_length);
-        glGetShaderInfoLog(fragment_shader, log_length, NULL, log);
-        printf("fragment shader log:\n\n%s\n", log);
-    }
-    if (!success) {
-        printf("fragment shader compile error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // load image
-    int width, height;
-    SDL_Surface* image = IMG_Load("sample.png");
-    if (nullptr == image) {
-        printf("Failed to load image\n");
-        exit(EXIT_FAILURE);
-    }
-    else {
-        printf("Image loaded\n");
-    }
-    
-
-    /* Link shaders */
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
-    //glBindFragDataLocation(program, 0, "position");
-    //glBindFragDataLocation(program, 0, "triangleColor");
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
-    /*
-    if (log_length > 0) {
-        log = realloc(log, log_length);
-        glGetProgramInfoLog(program, log_length, NULL, log);
-        printf("shader link log:\n\n%s\n", log);
-    }
-    if (!success) {
-        printf("shader link error");
-        exit(EXIT_FAILURE);
-    }
-    */
-
-    posAttrib = glGetAttribLocation(program, "position");
-    colAttrib = glGetUniformLocation(program, "color");
-    texAttrib = glGetUniformLocation(program, "texcoord");
-	timeAttrib = glGetUniformLocation(program, "deltaTime");
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
-    glVertexAttribPointer(colAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(posAttrib);
-    glEnableVertexAttribArray(colAttrib);
-    glEnableVertexAttribArray(texAttrib);
-
-    std::cout << "Vertex Shader: " << vertex_shader << std::endl;
-    std::cout << "Fragment Shader: " << fragment_shader << std::endl;
-    std::cout << "Program: " << program << std::endl;
-
-    /* link image */
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->w, image->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->pixels);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    /* Cleanup. */
-    free(log);
-    //glDeleteShader(vertex_shader);
-    //glDeleteShader(fragment_shader);
-
-    //glGenBuffers(1, &vbo); // we don't need to regenerate the buffer object
-    // bind the buffers to be worked in the next line
-    //glBindBuffer(GL_ARRAY_BUFFER, vbo); // nor do we need to bind it again
-    // if the vertices is NOT NULL
-    //if (vertices != NULL) {
-    //    // send the vertices to the buffer to be drawn statically
-    //    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    //    std::cout << "vertices not empty" << std::endl;
-    //}
-    // get the attribute pointer for the "position" of the vertices
-    glVertexAttribPointer(glGetFragDataLocation(program, "position"), 2, GL_FLOAT, GL_FALSE, 0, 0);
-    // and assign the array of vertices to the active buffer
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glUseProgram(program);
-}
-
 void GL_GraphicsEngine::reloadShaders() {
     string fileName = "shader.fragment";
-    FileReader reader;
 
-	output = reader.ReadFile(fileName);
+	reader.ReadFile(fileName, &output);
         
-    shaderOutput = output.c_str();
+    shaderOutput = output.data();
     
-
-    //std::cout << "Shader reader output: " << endl << output << endl << endl;
-
     // load the shaders we grabbed
-    // This might have an image param later
+    get_shader_program(textureVertex, shaderOutput);
 
-    liam_get_shader_program(textureVertex, shaderOutput);
-
+    /*
     int count;
     int size;
     GLenum type;
@@ -508,6 +356,7 @@ void GL_GraphicsEngine::reloadShaders() {
         cout << "Uniform: " << i << " Type: " << type << " Name: " << name << endl;
     }
     cout << count << endl;
+    */
 }
 
 void GL_GraphicsEngine::updateTime() {
@@ -523,8 +372,12 @@ void GL_GraphicsEngine::updateTime() {
         reverse = false;
     }
     currentTime = chrono::high_resolution_clock::now();
+	//auto nanosec = currentTime.time_since_epoch().count();
+	//float milliseconds_since_epoch = chrono::system_clock::now().time_since_epoch() / chrono::seconds(1);
     deltaTime = chrono::duration_cast<chrono::duration<float>>(currentTime - startTime).count();
-    glUniform1f(timeAttrib, deltaTime);
+    glUniform1f(timeAttrib, currentTime.time_since_epoch().count());
+    glUniform1f(deltaTimeAttrib, deltaTime);
+    cout << currentTime.time_since_epoch().count();
     glUniform1f(progAttrib, progress / 5.0f);
     //std::cout << progress << endl;
 }

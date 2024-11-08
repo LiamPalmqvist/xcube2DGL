@@ -2,8 +2,8 @@
 
 MyGame::MyGame() : AbstractGame(), score(0), lives(3), numKeys(5), gameWon(false), box(5, 5, 30, 30) {
 	TTF_Font * font = ResourceManager::loadFont("res/fonts/arial.ttf", 72);
-	gfx->useFont(font);
-	gfx->setVerticalSync(true);
+	glGfx->setVerticalSync(true);
+	//glGfx->useFont(font);
 
     for (int i = 0; i < numKeys; i++) {
         std::shared_ptr<GameKey> k = std::make_shared<GameKey>();
@@ -57,14 +57,18 @@ void MyGame::update() {
 	}
 }
 
+
 void MyGame::render() {
-	gfx->setDrawColor(SDL_COLOR_RED);
-	gfx->drawRect(box);
+	
+	/*
+	glGfx->setDrawColor(SDL_COLOR_RED);
+	glGfx->drawRect(box);
 
 	gfx->setDrawColor(SDL_COLOR_YELLOW);
 	for (auto key : gameKeys)
         if (key->isAlive)
 		    gfx->drawCircle(key->pos, 5);
+	*/
 }
 
 void MyGame::renderUI() {
