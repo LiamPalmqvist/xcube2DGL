@@ -52,7 +52,7 @@ GLint elements[] = {
  * frameworks
  * We also set some default values as we call the initialiser
  */
-GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart(0), fpsEnd(0) {    
+GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart(0), fpsEnd(0), windowWidth(1400), windowHeight(800) {    
     // Start tracking time
     startTime, currentTime = chrono::high_resolution_clock::now();
 
@@ -62,8 +62,8 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
     window = SDL_CreateWindow(
             "The X-CUBE 2D Game Engine - OpenGL Version",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
-            //1920, 1080,
+            //DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
+            windowWidth, windowHeight,
             SDL_WINDOW_OPENGL
     );
     // By sending the flag `SDL_WINDOW_OPENGL` we specify that we want the window to
@@ -139,7 +139,7 @@ GL_GraphicsEngine::GL_GraphicsEngine() : fpsAverage(0), fpsPrevious(0), fpsStart
     //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     
-    glViewport(0, 0, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+    glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     // =====================================================================
     printf("%u\n", vbo);
@@ -235,8 +235,6 @@ void GL_GraphicsEngine::get_shader_program(
     glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
     glCompileShader(fragment_shader);
 
-	
-
 	// check for errors
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
     glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &log_length);
@@ -330,7 +328,7 @@ void GL_GraphicsEngine::get_shader_program(
     }*/
 
     glUseProgram(program);
-    glUniform2i(resAttrib, 800, 600);
+    glUniform3f(resAttrib, windowWidth, windowHeight, 0.0);
 }
 
 void GL_GraphicsEngine::reloadShaders() {
@@ -372,14 +370,17 @@ void GL_GraphicsEngine::updateTime() {
         reverse = false;
     }
     currentTime = chrono::high_resolution_clock::now();
+    float timeInSeconds = currentTime.time_since_epoch().count();
+    timeInSeconds *= 0.0000000001f;
 	//auto nanosec = currentTime.time_since_epoch().count();
 	//float milliseconds_since_epoch = chrono::system_clock::now().time_since_epoch() / chrono::seconds(1);
     deltaTime = chrono::duration_cast<chrono::duration<float>>(currentTime - startTime).count();
-    glUniform1f(timeAttrib, currentTime.time_since_epoch().count());
+    glUniform1f(timeAttrib, timeInSeconds);
     glUniform1f(deltaTimeAttrib, deltaTime);
-    cout << currentTime.time_since_epoch().count();
     glUniform1f(progAttrib, progress / 5.0f);
+    
     //std::cout << progress << endl;
+	//std::cout << number.i << std::endl;
 }
 
 void GL_GraphicsEngine::drawTri(GLfloat verts[], GLfloat colour[]) {

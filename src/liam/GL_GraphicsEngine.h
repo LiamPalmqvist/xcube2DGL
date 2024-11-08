@@ -103,6 +103,8 @@ private:
 
     FileReader reader;      // Reader   Object
     string textureFragment; // Texture  string
+    int windowHeight;       // Window   Height
+    int windowWidth;        // Window   Width
 
 
 public:
