@@ -14,7 +14,6 @@ private:
 
 	// declaration of the basic shader program
 	const char* textureFragment = R"glsl(
-precision highp float;
 uniform vec3    iResolution     = vec3(800, 600, 1.0);
 uniform float   iTime;
 uniform float   iDeltaTime;
